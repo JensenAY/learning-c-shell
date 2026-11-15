@@ -3,12 +3,85 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include "./libs/linenoise/linenoise.h"
 
 #define PROMPT "$ "
 #define HISTORY_LENGTH 1024
 #define MAX_ARGS 1024
 #define TOKEN_SEPS " \t"
+
+int s_execute(char *cmd, char **cmd_args)
+{
+    fprintf(stdout, "Executing `%s`!\n", cmd);
+
+    int status;
+
+    pid_t pid;
+    pid = fork();
+
+    if (pid < 0)
+    {
+        fprintf(stderr, "Could not execute\n");
+        return -1;
+    }
+
+    if (pid == 0)
+    {
+        execvp(cmd, cmd_args);
+    }
+    else
+    {
+        if (waitpid(pid, &status, 0) != pid)
+        {
+            fprintf(stderr, "Could not wait for kiddo!\n");
+            return -1;
+        }
+    };
+
+    return status;
+};
+
+typedef enum Builtin
+{
+    CD,
+    PWD,
+    INVALID
+} Builtin;
+
+void (*BUILTIN_TABLE[])(char **args, size_t n_args) = {
+    [CD] = builtin_impl_cd,
+    [PWD] = builtin_impl_pwd,
+};
+
+Builtin builtin_code(char *cmd)
+{
+    if (!strncmp(cmd, "cd", 2))
+    {
+        return CD;
+    }
+    else if (!strncmp(cmd, "pwd", 3))
+    {
+        return PWD;
+    }
+    else
+    {
+        return INVALID;
+    }
+};
+
+void builtin_impl_cd(char **args, size_t n_args) {};
+void builtin_impl_pwd(char **args, size_t n_args) {};
+
+int is_builtin(char *cmd)
+{
+    return builtin_code(cmd) != INVALID;
+};
+
+void s_execute_builtin(char *cmd, char **args, size_t n_args)
+{
+    BUILTIN_TABLE[builtin_code(cmd)](args, n_args);
+}
 
 int s_read(char *input, char **args)
 {
@@ -51,6 +124,18 @@ int main(void)
         {
             linenoiseFree(line);
             continue;
+        }
+
+        char *cmd = args[0];
+        char **cmd_args = args;
+
+        if (is_builtin(cmd))
+        {
+            s_execute_builtin(cmd, (cmd_args + 1), args_read - 1);
+        }
+        else
+        {
+            s_execute(cmd, cmd_args);
         }
 
         linenoiseHistoryAdd(line);
