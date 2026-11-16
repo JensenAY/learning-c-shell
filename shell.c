@@ -10,6 +10,9 @@
 #define HISTORY_LENGTH 1024
 #define MAX_ARGS 1024
 #define TOKEN_SEPS " \t"
+#define PATH_MAX 4096
+
+char CWD[PATH_MAX];
 
 int s_execute(char *cmd, char **cmd_args)
 {
@@ -49,6 +52,39 @@ typedef enum Builtin
     INVALID
 } Builtin;
 
+void refresh_cwd(void)
+{
+    if (getcwd(CWD, sizeof(CWD)) == NULL)
+    {
+        fprintf(stderr, "Error: Could not read working dir");
+        exit(1);
+    };
+}
+
+void builtin_impl_cd(char **args, size_t n_args)
+{
+    char *new_dir = *args;
+
+    if (n_args == 0)
+    {
+        fprintf(stderr, "Please enter a directory \n");
+        return;
+    };
+
+    if (chdir(new_dir) != 0)
+    {
+        fprintf(stderr, "Error: Could not change directory \n");
+        return;
+    }
+
+    refresh_cwd();
+};
+
+void builtin_impl_pwd(char **args, size_t n_args)
+{
+    fprintf(stdout, "%s\n", CWD);
+};
+
 void (*BUILTIN_TABLE[])(char **args, size_t n_args) = {
     [CD] = builtin_impl_cd,
     [PWD] = builtin_impl_pwd,
@@ -69,9 +105,6 @@ Builtin builtin_code(char *cmd)
         return INVALID;
     }
 };
-
-void builtin_impl_cd(char **args, size_t n_args) {};
-void builtin_impl_pwd(char **args, size_t n_args) {};
 
 int is_builtin(char *cmd)
 {
@@ -101,6 +134,8 @@ int s_read(char *input, char **args)
 
 int main(void)
 {
+    refresh_cwd();
+
     if (!linenoiseHistorySetMaxLen(HISTORY_LENGTH))
     {
         fprintf(stderr, "Could not set linenoise history!");
