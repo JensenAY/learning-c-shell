@@ -1,5 +1,4 @@
 // gcc shell.c ./libs/linenoise/linenoise.c ./include/s_execute/s_execute.c ./include/s_read/s_read.c -o shell
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
