@@ -1,4 +1,4 @@
-// gcc shell.c ./libs/linenoise/linenoise.c -o shell
+// gcc shell.c ./libs/linenoise/linenoise.c ./include/s_execute/s_execute.c ./include/s_read/s_read.c -o shell
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,11 +6,10 @@
 #include <unistd.h>
 #include "./libs/linenoise/linenoise.h"
 #include "./include/s_execute/s_execute.h"
+#include "./include/s_read/s_read.h"
 
 #define PROMPT "$ "
 #define HISTORY_LENGTH 1024
-#define MAX_ARGS 1024
-#define TOKEN_SEPS " \t"
 #define PATH_MAX 4096
 
 char CWD[PATH_MAX];
@@ -87,21 +86,7 @@ void s_execute_builtin(char *cmd, char **args, size_t n_args)
     BUILTIN_TABLE[builtin_code(cmd)](args, n_args);
 }
 
-int s_read(char *input, char **args)
-{
-    int i = 0;
 
-    char *token = strtok(input, TOKEN_SEPS);
-
-    while (token != NULL && i < MAX_ARGS - 1)
-    {
-        args[i++] = token;
-        token = strtok(NULL, TOKEN_SEPS);
-    };
-
-    args[i] = NULL;
-    return i;
-};
 
 int main(void)
 {
